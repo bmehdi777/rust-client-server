@@ -1,6 +1,9 @@
 use std::net::Ipv4Addr;
 
+pub const MAX_PACKET_SIZE: usize = 65535;
+
 #[repr(u8)]
+#[derive(Debug)]
 pub enum MessageType {
     ConnectionInit = 0,
     SendText = 1,
@@ -23,6 +26,16 @@ pub struct Message {
     pub message_type: MessageType,
     pub source: Ipv4Addr,
     pub content: String,
+}
+
+impl std::fmt::Display for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Length: {}\nMessage Type: {:?}\nSource: {}\nContent: {}\n",
+            self.length, self.message_type, self.source, self.content
+        )
+    }
 }
 
 impl From<Vec<u8>> for Message {
