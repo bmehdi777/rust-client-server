@@ -1,6 +1,7 @@
 use std::net::Ipv4Addr;
 
 pub const MAX_PACKET_SIZE: usize = 65535;
+pub const SERVER_PORT: u32 = 6969;
 
 #[repr(u8)]
 #[derive(Debug)]

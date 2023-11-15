@@ -1,8 +1,8 @@
 use std::net::{Ipv4Addr, TcpListener, TcpStream};
-use telnet_proj::{Message, MAX_PACKET_SIZE};
+use basic_serv_client::{Message, MAX_PACKET_SIZE, SERVER_PORT};
 
 fn main() -> std::io::Result<()> {
-    let server = TcpListener::bind("0.0.0.0:6969")?;
+    let server = TcpListener::bind(format!("0.0.0.0:{}", SERVER_PORT))?;
     let mut addr_sub: Vec<Ipv4Addr> = Vec::new();
 
     for stream in server.incoming() {

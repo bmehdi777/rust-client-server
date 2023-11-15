@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "telnet-proj"
+name = "basic-serv-client"
 version = "0.1.0"
