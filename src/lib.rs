@@ -2,7 +2,7 @@ pub const MAX_PACKET_SIZE: usize = 65535;
 pub const SERVER_PORT: u32 = 6969;
 
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum MessageType {
     ConnectionInit = 0,
     SendText = 1,
@@ -20,6 +20,7 @@ impl From<u8> for MessageType {
     }
 }
 
+#[derive(Debug)]
 pub struct Message {
     pub length_content: u32,
     pub length_username: u32,
@@ -72,7 +73,7 @@ impl From<Vec<u8>> for Message {
 
         let max_length_username: usize = 9 + length_username_usize;
 
-        let username: String = String::from_utf8(raw_bytes[9..max_length_username].to_vec())
+        let username: String = String::from_utf8(raw_bytes[9..max_length_username-1].to_vec())
             .expect("Invalid UTF-8 sequence.");
         let content: String = String::from_utf8(
             raw_bytes[max_length_username..max_length_username + length_content_usize].to_vec(),
