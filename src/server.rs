@@ -3,14 +3,17 @@ use std::io::Read;
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let server = TcpListener::bind(format!("0.0.0.0:{}", SERVER_PORT))?;
     let username_sub: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+    let history_sub: Arc<Mutex<HashMap<String,String>>> = Arc::new(Mutex::new(HashMap::new()));
 
     for stream in server.incoming() {
         let username_sub_clone = Arc::clone(&username_sub);
+        let history_sub_clone = Arc::clone(&history_sub);
         tokio::spawn(async move {
             let _ = handle_connection(stream.expect("Failed to unwrap tcpstream"),username_sub_clone).await;
         });
@@ -37,6 +40,7 @@ async fn handle_connection(mut stream: TcpStream, subscriber: Arc<Mutex<Vec<Stri
             MessageType::ConnectionInit => {
                 let mut lock = subscriber.lock().await;
                 lock.push(msg.username);
+
                 println!("INFO: users connected : {:?}", lock);
             }
             MessageType::ConnectionClosed => {
