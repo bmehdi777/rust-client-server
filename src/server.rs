@@ -1,23 +1,25 @@
 use basic_serv_client::{Message, MessageType, MAX_PACKET_SIZE, SERVER_PORT};
-use std::io::{Read, Write};
+use std::io::Read;
 use std::net::{TcpListener, TcpStream};
-use std::thread;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let server = TcpListener::bind(format!("0.0.0.0:{}", SERVER_PORT))?;
-    let mut username_sub: Vec<String> = Vec::new();
+    let username_sub: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
 
     for stream in server.incoming() {
+        let username_sub_clone = Arc::clone(&username_sub);
         tokio::spawn(async move {
-            handle_connection(stream.expect("Failed to unwrap tcpstream"));
+            let _ = handle_connection(stream.expect("Failed to unwrap tcpstream"),username_sub_clone).await;
         });
     }
 
     Ok(())
 }
 
-fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
+async fn handle_connection(mut stream: TcpStream, subscriber: Arc<Mutex<Vec<String>>>) -> std::io::Result<()> {
     println!(
         "INFO: Connection started with {}.",
         stream.peer_addr().unwrap().ip()
@@ -32,9 +34,16 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
 
         let msg: Message = data.into();
         match msg.message_type {
-            MessageType::ConnectionInit => {}
+            MessageType::ConnectionInit => {
+                let mut lock = subscriber.lock().await;
+                lock.push(msg.username);
+                println!("INFO: users connected : {:?}", lock);
+            }
             MessageType::ConnectionClosed => {
                 println!("INFO: {} connection closed", msg.username);
+                let mut lock = subscriber.lock().await;
+                lock.retain(|username| username.ne(&msg.username));
+                println!("INFO: users connected : {:?}", lock);
                 break;
             }
             MessageType::SendText => {
