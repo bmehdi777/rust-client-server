@@ -38,7 +38,7 @@ fn handle_start() -> std::io::Result<(String, String)> {
     let mut username = String::new();
     std::io::stdin().read_line(&mut username)?;
 
-    Ok((String::from("192.168.1.22"), username))
+    Ok((server_addr, username))
 }
 
 async fn handle_conversation(read: OwnedReadHalf , write: OwnedWriteHalf, username: String) -> std::io::Result<()> {
