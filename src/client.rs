@@ -1,4 +1,4 @@
-use basic_serv_client::{Message, MessageType, SERVER_PORT};
+use basic_serv_client::{Message, MessageType, SERVER_PORT, MAX_PACKET_SIZE};
 use tokio::net::{TcpStream, tcp::{OwnedWriteHalf, OwnedReadHalf}};
 use std::io::Write;
 
@@ -38,7 +38,7 @@ fn handle_start() -> std::io::Result<(String, String)> {
     let mut username = String::new();
     std::io::stdin().read_line(&mut username)?;
 
-    Ok((String::from("192.168.1.35"), username))
+    Ok((String::from("192.168.1.22"), username))
 }
 
 async fn handle_conversation(read: OwnedReadHalf , write: OwnedWriteHalf, username: String) -> std::io::Result<()> {
@@ -46,13 +46,16 @@ async fn handle_conversation(read: OwnedReadHalf , write: OwnedWriteHalf, userna
     // read
     let task = tokio::spawn(async move {
         loop {
-            let mut buffer: Vec<u8> = Vec::new();
-            read.readable().await.expect("An error occured while ready");
-            let _ = read.try_read(&mut buffer).expect("An error occured while reading data.");
-            if buffer.len() > 0 {
-                let recv: Message = buffer.into();
-                println!("Received: {}", recv);
-            }
+            let mut buffer: [u8; MAX_PACKET_SIZE ] = [0; MAX_PACKET_SIZE];
+            read.readable().await.expect("An error occured while waiting for read");
+            match read.try_read(&mut buffer) {
+                Ok(_) => {
+                    let data: Vec<u8> = buffer.into();
+                    let recv: Message = data.into();
+                    println!("{} : {}", recv.username, recv.content);
+                }
+                Err(_) => {},
+            };
         }
     });
 

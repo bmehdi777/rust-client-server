@@ -2,6 +2,7 @@ use basic_serv_client::{Message, MessageType, MAX_PACKET_SIZE, SERVER_PORT};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc::channel;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 fn main() -> std::io::Result<()> {
@@ -9,7 +10,7 @@ fn main() -> std::io::Result<()> {
     server
         .set_nonblocking(true)
         .expect("An error occured while setting nonblocking");
-    let mut client_stream: Vec<TcpStream> = Vec::new();
+    let mut client_stream: Arc<Mutex<Vec<TcpStream>>> = Arc::new(Mutex::new(Vec::new()));
     let (tx, rx) = channel::<Message>();
 
     loop {
@@ -19,8 +20,14 @@ fn main() -> std::io::Result<()> {
                     "INFO: Connection started with {}.",
                     stream.peer_addr().unwrap().ip()
                 );
-                client_stream.push(stream.try_clone().expect("Can't clone the stream"));
+                client_stream
+                    .lock()
+                    .expect("An error occured while locking client_stream")
+                    .push(stream.try_clone().expect("Can't clone the stream"));
+
                 let tx = tx.clone();
+                let client_stream = Arc::clone(&client_stream);
+
                 thread::spawn(move || {
                     loop {
                         let mut buffer: [u8; MAX_PACKET_SIZE] = [0; MAX_PACKET_SIZE];
@@ -38,6 +45,12 @@ fn main() -> std::io::Result<()> {
                             }
                             MessageType::ConnectionClosed => {
                                 println!("INFO: {} connection closed", message.username);
+                                client_stream
+                                    .lock()
+                                    .expect("client_stream poisoned.")
+                                    .retain(|c| {
+                                        c.peer_addr().unwrap().ne(&stream.peer_addr().unwrap())
+                                    });
                                 break;
                             }
                             MessageType::SendText => {
@@ -54,8 +67,12 @@ fn main() -> std::io::Result<()> {
         };
 
         if let Ok(message) = rx.try_recv() {
+            println!("Data ready to send to client");
             let raw_bytes: Vec<u8> = message.into();
-            for stream in client_stream.iter_mut() {
+            let mut lock = client_stream.lock().expect("client stream poisoned.");
+
+            for stream in lock.iter_mut() {
+                println!("Sending to {:?}", stream);
                 let _ = stream.write(&raw_bytes);
             }
         };

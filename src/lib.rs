@@ -76,7 +76,7 @@ impl From<Vec<u8>> for Message {
         let username: String = String::from_utf8(raw_bytes[9..max_length_username-1].to_vec())
             .expect("Invalid UTF-8 sequence.");
         let content: String = String::from_utf8(
-            raw_bytes[max_length_username..max_length_username + length_content_usize].to_vec(),
+            raw_bytes[max_length_username-1..max_length_username + length_content_usize].to_vec(),
         )
         .expect("Invalid UTF-8 sequence.");
 
