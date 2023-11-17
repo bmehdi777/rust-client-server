@@ -38,7 +38,7 @@ fn handle_start() -> std::io::Result<(String, String)> {
     let mut username = String::new();
     std::io::stdin().read_line(&mut username)?;
 
-    Ok((String::from("192.168.1.22"), username))
+    Ok((String::from("192.168.1.35"), username))
 }
 
 async fn handle_conversation(read: OwnedReadHalf , write: OwnedWriteHalf, username: String) -> std::io::Result<()> {
@@ -48,7 +48,7 @@ async fn handle_conversation(read: OwnedReadHalf , write: OwnedWriteHalf, userna
         loop {
             let mut buffer: Vec<u8> = Vec::new();
             read.readable().await.expect("An error occured while ready");
-            let _ = read.try_read(&mut buffer);
+            let _ = read.try_read(&mut buffer).expect("An error occured while reading data.");
             if buffer.len() > 0 {
                 let recv: Message = buffer.into();
                 println!("Received: {}", recv);
